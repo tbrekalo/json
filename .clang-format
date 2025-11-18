@@ -1,0 +1,42 @@
+Language: Cpp
+
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+NamespaceIndentation: None
+
+ColumnLimit: 120
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+AllowShortLambdasOnASingleLine: All
+
+AlwaysBreakTemplateDeclarations: No
+BreakBeforeBraces: Attach
+CompactNamespaces: true
+
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInAngles: Never
+
+BinPackArguments: true
+BinPackParameters: true
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+
+MaxEmptyLinesToKeep: 1
+
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: true
+
+ReflowComments: true
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve
