@@ -13,14 +13,13 @@ class parser {
   char const* first_;
   char const* last_;
 
-  auto skip_while(auto&& predicate, ptrdiff_t offset) noexcept -> bool {
+  constexpr auto skip_while(auto&& predicate, ptrdiff_t offset) noexcept -> bool {
     for (first_ += offset; !error_ && first_ < last_ && predicate(*first_); ++first_);
     return !(error_ |= !(first_ <= last_));
   }
 
-  template <class Predicate>
-  auto skip_except(Predicate&& predicate, std::string_view set, ptrdiff_t offset = 0) noexcept -> bool {
-    return skip_while(std::forward<Predicate>(predicate), offset) && !(error_ |= !(set.contains(*first_)));
+  constexpr auto skip_except(auto&& predicate, std::string_view set, ptrdiff_t offset = 0) noexcept -> bool {
+    return skip_while(std::forward<decltype(predicate)>(predicate), offset) && !(error_ |= !(set.contains(*first_)));
   }
 
   static constexpr auto (*pred_wspace)(char) noexcept
@@ -33,7 +32,7 @@ class parser {
   static constexpr std::string_view TRUE_STR{"true"};
   static constexpr std::string_view NULL_STR{"null"};
 
-  template <auto value> auto try_pull_value_str(std::string_view target, bool set_error) noexcept
+  template <auto value> constexpr auto try_pull_value_str(std::string_view target, bool set_error) noexcept
       -> std::optional<decltype(value)> {
     if (error_ || last_ - first_ < std::ssize(target) || target != std::string_view(first_, target.size())) {
       error_ |= set_error;
@@ -44,21 +43,23 @@ class parser {
   }
 
 public:
-  explicit parser(std::string_view src) : first_(src.begin()), last_(src.end()) {}
+  constexpr explicit parser(std::string_view src) noexcept : first_(src.begin()), last_(src.end()) {}
 
-  auto halt() noexcept -> void { error_ |= true; }
-  auto error() const noexcept -> bool { return error_; }
+  constexpr auto halt() noexcept -> void { error_ |= true; }
+  constexpr auto error() const noexcept -> bool { return error_; }
 
-  auto pull_null() noexcept -> std::optional<std::nullptr_t> { return try_pull_value_str<nullptr>(NULL_STR, true); }
+  constexpr auto pull_null() noexcept -> std::optional<std::nullptr_t> {
+    return try_pull_value_str<nullptr>(NULL_STR, true);
+  }
 
-  auto pull_bollean() noexcept -> std::optional<bool> {
+  constexpr auto pull_bollean() noexcept -> std::optional<bool> {
     return try_pull_value_str<false>(FALSE_STR, false).or_else([&] {
       return try_pull_value_str<true>(TRUE_STR, true);
     });
   }
 
-  auto pull_string() noexcept -> std::optional<std::string_view> {
-    if ((error_ |= *first_ != '"')) { return std::nullopt; }
+  constexpr auto pull_string() noexcept -> std::optional<std::string_view> {
+    if ((error_ |= (first_ >= last_ || *first_ != '"'))) { return std::nullopt; }
 
     bool escaped = false;
     for (char const* begin = first_++; first_ < last_; ++first_) {
@@ -74,30 +75,32 @@ public:
     return std::nullopt;
   }
 
-  auto pull_number() noexcept -> std::optional<std::string_view> {
+  constexpr auto pull_number() noexcept -> std::optional<std::string_view> {
+    if ((error_ |= first_ >= last_)) { return std::nullopt; }
+
     auto const* begin = first_;
-    if (first_ < last_ && *first_ == '-') { ++first_; }
+    if (*first_ == '-') { ++first_; }
     if ((error_ |= !(first_ < last_ && std::isdigit(*first_)))) { return std::nullopt; }
     for (; first_ < last_ && std::isdigit(*first_); ++first_);
 
     if (first_ < last_ && *first_ == '.') {
-      auto n_digits = 0;
-      for (++first_; first_ < last_ && std::isdigit(*first_); ++first_, ++n_digits);
-      if ((error_ |= n_digits == 0)) { return std::nullopt; }
+      size_t n_decimal_digits = 0;
+      for (++first_; first_ < last_ && std::isdigit(*first_); ++first_, ++n_decimal_digits);
+      if ((error_ |= n_decimal_digits == 0)) { return std::nullopt; }
     };
 
     if (first_ < last_ && (*first_ == 'e' || *first_ == 'E')) {
-      auto n_digits = 0;
+      size_t n_exp_digits = 0;
       if (++first_ < last_ && (*first_ == '-' || *first_ == '+')) { ++first_; }
-      for (; first_ < last_ && std::isdigit(*first_); ++first_, ++n_digits);
-      if ((error_ |= n_digits == 0)) { return std::nullopt; }
+      for (; first_ < last_ && std::isdigit(*first_); ++first_, ++n_exp_digits);
+      if ((error_ |= n_exp_digits == 0)) { return std::nullopt; }
     }
     return std::string_view(begin, first_);
   }
 
   template <class Sink>
     requires(std::is_invocable_r_v<void, Sink>)
-  auto pull_list(Sink&& sink) noexcept(std::is_nothrow_invocable_r_v<void, Sink>) -> bool {
+  constexpr auto pull_list(Sink&& sink) noexcept(std::is_nothrow_invocable_r_v<void, Sink>) -> bool {
     if (error_ || !skip_except(pred_wspace, "[")) { return !(error_ |= true); }
     for (skip_while(pred_wspace, 1); !error_ && first_ < last_ && *first_ != ']';
          skip_except(pred_wspace, ",]") && skip_while(pred_wspace, *first_ == ',')) {
@@ -110,7 +113,8 @@ public:
 
   template <class Sink>
     requires(std::is_invocable_r_v<void, Sink, std::string_view>)
-  auto pull_object(Sink&& siunk) noexcept(std::is_nothrow_invocable_r_v<void, Sink, std::string_view>) -> bool {
+  constexpr auto pull_object(Sink&& siunk) noexcept(std::is_nothrow_invocable_r_v<void, Sink, std::string_view>)
+      -> bool {
     if (error_ || !skip_except(pred_wspace, "{")) { return !(error_ |= true); }
     for (skip_while(pred_wspace, 1); !error_ && first_ < last_ && *first_ != '}';
          skip_except(pred_wspace, ",}") && skip_while(pred_wspace, *first_ == ',')) {
