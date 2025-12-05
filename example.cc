@@ -25,7 +25,14 @@ R"(
     }
   ],
   "42": true,
-  "": false
+  "": false,
+  "skip": {
+    "true": true,
+    "false": false,
+    "null": null,
+    "list": [true, false, null, [{"a": [], "b": {"c": null}}, 1, 2]]
+  },
+  "happy": true
 }
 )"};
 
@@ -64,6 +71,8 @@ auto main(int, char**) -> int {
     }
     if (key == "42") { std::print("42: {}\n", *parser.pull_bollean()); }
     if (key == "") { std::print("\"\": {}\n", *parser.pull_bollean()); }
+    if (key == "skip") { std::print("skip: {}\n", parser.skip_value()); }
+    if (key == "happy") { std::print("happy: {}\n", *parser.pull_bollean()); }
   });
 
   return EXIT_SUCCESS;
