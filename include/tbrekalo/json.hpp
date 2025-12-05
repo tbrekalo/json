@@ -124,6 +124,20 @@ public:
     if (first_ >= last_ || *first_++ != '}') { return !(error_ |= true); }
     return !error_;
   }
+
+  constexpr auto skip_value() -> bool {
+    if (error_ || !skip_while(pred_wspace, 0) || first_ >= last_) { return !(error_ |= true); }
+    switch (*first_) {
+    case '{': return pull_object([&](std::string_view) { skip_value(); });
+    case '[': return pull_list([&] { skip_value(); });
+    case '"': return pull_string().has_value();
+    case 'f': return pull_bollean().has_value();
+    case 't': return pull_bollean().has_value();
+    case 'n': return pull_null().has_value();
+    default: pull_number().has_value();
+    }
+    return !error_;
+  }
 };
 
 } // namespace tbrekalo::json
