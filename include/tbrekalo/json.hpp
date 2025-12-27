@@ -113,12 +113,12 @@ public:
 
   template <class Sink>
     requires(std::is_invocable_r_v<void, Sink, std::string_view>)
-  constexpr auto pull_object(Sink&& siunk) noexcept(std::is_nothrow_invocable_r_v<void, Sink, std::string_view>)
+  constexpr auto pull_object(Sink&& sink) noexcept(std::is_nothrow_invocable_r_v<void, Sink, std::string_view>)
       -> bool {
     if (error_ || !skip_except(pred_wspace, "{")) { return !(error_ |= true); }
     for (skip_while(pred_wspace, 1); !error_ && first_ < last_ && *first_ != '}';
          skip_except(pred_wspace, ",}") && skip_while(pred_wspace, *first_ == ',')) {
-      if (auto key = pull_string(); key && skip_except(pred_wspace, ":") && skip_while(pred_wspace, 1)) { siunk(*key); }
+      if (auto key = pull_string(); key && skip_except(pred_wspace, ":") && skip_while(pred_wspace, 1)) { sink(*key); }
     }
 
     if (first_ >= last_ || *first_++ != '}') { return !(error_ |= true); }
